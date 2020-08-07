@@ -272,7 +272,7 @@ def load_model(model_name):
 
 
 def generate_tweet(model, seed_index, diversity, corp):
-    with open('./logs/' + model.name + '_logs.txt', "a+") as log_file:
+    with open('./output/' + model.name + '.txt', "a+") as log_file:
         logwrite(log_file, '----- diversity: {}\n'.format(diversity))
 
         sentence = ''.join(corp.corpus[seed_index: seed_index +

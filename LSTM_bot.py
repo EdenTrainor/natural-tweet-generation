@@ -1,10 +1,4 @@
-import sys
-import random
-import os
-import gc
-import re
-import json
-from string import punctuation
+from datetime import datetime
 
 import pandas as pd
 import numpy as np
@@ -52,19 +46,23 @@ if __name__ == '__main__':
 
     nchars = full_corp.get_num_chars()
 
-    model = Sequential(name="test_bot1")
+    model = Sequential(name="test_bot-dropout")
     model.add(Input(shape=(SAMPLE_LEN, nchars), dtype=np.float32))
     model.add(LSTM(256, return_sequences=True))
-    model.add(Dropout(0.2))
-    model.add(LSTM(256))
+    model.add(Dropout(0.4))
+    model.add(LSTM(128, return_sequences=True))
     model.add(Dropout(0.2))
     model.add(Dense(nchars, activation="softmax"))
     model.compile(loss="categorical_crossentropy", optimizer="adam")
     print(model.summary())
 
+    logdir = "logs/" + model.name + "/scalars/" + \
+        datetime.now().strftime("%Y%m%d-%H%M%S")
+    tensorboard_callback = tf.keras.callbacks.TensorBoard(log_dir=logdir)
+
     tweet_ends = np.where(np.asarray(list(corpus)) == "@")[0]
 
-    for epoch in range(1, 31):
+    for epoch in range(1, 100):
         print('-' * 40)
         print('Epoch', epoch)
         model.fit(
