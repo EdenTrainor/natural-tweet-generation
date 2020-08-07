@@ -46,3 +46,12 @@ The Democrats now own the shutdow niocke rhuosti n"e@
 ----- diversity: 1.2
 ----- Generating with seed: "The Democrats now own the shutdow"
 The Democrats now own the shutdow nyoet hoaws,  ceonpgelts  a@
+----- diversity: 0.2
+----- Generating with seed: ""_Marcucci: You're definitely goi"
+"_Marcucci: You're definitely goionn,g uts  atn etvpelniens  thhai nhee dgeens  oonr icnaetse doeesn  aensdoarrdesn ibnliyt a3n toh ipn otvhe rseipviengse daayl"a@
+----- diversity: 0.7
+----- Generating with seed: ""_Marcucci: You're definitely goi"
+"_Marcucci: You're definitely goionn,u ncoemsi nmaen  atn etmtaet! @
+----- diversity: 1.2
+----- Generating with seed: ""_Marcucci: You're definitely goi"
+"_Marcucci: You're definitely goionn,- nMoernoou,t hwisle,d upsseedd  afmterr uyt hye  hIe  suppporrtend egfafst,e mAiKtsi aitcna cbursaeldy.  TThEe  ahnazwehreadl-y-@

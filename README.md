@@ -1,7 +1,7 @@
 # NLP Demo: Trump Tweet Bot From Scratch
 
 <p align="center">
-<img align="center" src="https://raw.githubusercontent.com/EdenTrainor/NLP-Trump-Tweet-Bot/master/resources/trump_wordcloud.PNG" alt="djt" width="250" height="250">
+<img align="center" src="https://raw.githubusercontent.com/EdenTrainor//natural-tweet-generation/master/resources/trump_wordcloud.PNG" alt="djt" width="250" height="250">
 </p>
 
 ### A simple demo of some natural language processing. Staring twitter icon, Donald J. Trump
