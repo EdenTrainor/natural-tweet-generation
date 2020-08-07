@@ -15,4 +15,3 @@ __pychache__/
 # Don't upload data file
 *.swp
 archive.json
-trump_tweet_data_archive/
