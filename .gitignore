@@ -15,3 +15,4 @@ __pychache__/
 # Don't upload data file
 *.swp
 archive.json
+logs/

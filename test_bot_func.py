@@ -50,5 +50,16 @@ class TestOneHotFeatures(ut.TestCase):
         )
 
 
+class TestDatagenerator(ut.TestCase):
+
+    def test__getitem__(self):
+        corp = 'Hi my name is eden and welcome to my test'[:20]
+        Corp = TextCorpus(corp)
+        dg = TestDatagenerator()
+
+    def decode(self, arr):
+        pass
+
+
 if __name__ == "__main__":
     ut.main()
