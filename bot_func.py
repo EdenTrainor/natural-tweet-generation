@@ -10,8 +10,8 @@ from tensorflow.keras.models import model_from_json
 @njit
 def one_hot_features(start_inds, data, sample_len, nchars):
     """
-    Generates the one hot encoded feature and target arrays. 
-    As it's a nested for-loop invoving just numpy it's massivly more 
+    Generates the one hot encoded feature and target arrays.
+    As it's a nested for-loop invoving just numpy it's massivly more
     performant to compile it with numba.
 
     Args
@@ -39,7 +39,7 @@ class DataGenerator(Sequence):
     """
     Generates data as the model trains.
     This means we can prepare the next batch on the
-    cpu as we train the model on the GPU, speeding up the whole process.        
+    cpu as we train the model on the GPU, speeding up the whole process.
     """
 
     def __init__(self, data, sample_len, step_size, batch_size=32, shuffle=True):
@@ -53,7 +53,7 @@ class DataGenerator(Sequence):
             Number of characters before target character.
 
         step_size, int
-            Spacing in text between the start of each sample. This will control 
+            Spacing in text between the start of each sample. This will control
             how much overlap there is in each sample.
 
         batch_size, int
@@ -101,15 +101,11 @@ class DataGenerator(Sequence):
         if self.shuffle:
             np.random.shuffle(self.train_index)
 
-    def shape(self):
-        return (self.batch_size, self.sample_len, self.nchars)
-
 
 class TextCorpus:
-
     """
     Stores a text corpus and has utility methods.
-    Persists text to char conversion. 
+    Persists text to char conversion.
     """
 
     def __init__(self, corpus, save_dir="./model/", embed=True):
@@ -123,8 +119,8 @@ class TextCorpus:
             Directory to save the string-intiger embedding files
 
         embed, bool
-            Embed if this is the full text corpus. Don't embed if you're taking 
-            a subset but want to retain the previous embedding. e.g. see 
+            Embed if this is the full text corpus. Don't embed if you're taking
+            a subset but want to retain the previous embedding. e.g. see
             __getitem__ method.
         """
         self.save_dir = save_dir
@@ -139,7 +135,7 @@ class TextCorpus:
 
     def embed(self, corpus):
         """
-        Checks if embedding exists, if so, it loads it, if not, creates it and 
+        Checks if embedding exists, if so, it loads it, if not, creates it and
         saves it as a json in self.save_dir
 
         Args
@@ -214,7 +210,7 @@ class TextCorpus:
 
     def __getitem__(self, key):
         """
-        Creates a second TextCorpus object of the data with the same embedding 
+        Creates a second TextCorpus object of the data with the same embedding
         but a view of the data in order to conserve memory.
         """
         out = TextCorpus(self.corpus[key], save_dir=self.save_dir, embed=False)
@@ -227,6 +223,38 @@ class TextCorpus:
         Returns the number of unique characters in the full text corpus
         """
         return len(self.char_to_indicies)
+
+
+def create_class_weight(corp, mu=0.15):
+    """
+    Class weighting with label smoothing.
+
+    Args
+    ----
+    corp, np.ndarray(dtype='<U1')
+        The text corpus split into a numpy array.
+
+    mu, float
+        Scaling factor hyperparameter, this controls how much smoothing is
+        applied to very large class imbalances
+
+    Returns
+    -------
+    class_weights, dict(int: float)
+        Weighting for each class 
+
+    Adapted From: 
+    https://datascience.stackexchange.com/questions/13490/how-to-set-class-weights-for-imbalanced-classes-in-keras
+    """
+    chars, counts = np.unique(corp, return_counts=True)
+    total = counts.sum()
+    class_weight = dict()
+
+    for key in range(len(chars)):  # chars sorted in embedding and chars/counts here
+        score = np.log(mu * total / float(counts[key]))
+        class_weight[key] = score if score > 1.0 else 1.0
+
+    return class_weight
 
 
 def pred_indicies(preds, metric=1.0):
