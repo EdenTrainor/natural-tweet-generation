@@ -16,3 +16,4 @@ __pychache__/
 *.swp
 archive.json
 logs/
+trump_tweet_bot.py

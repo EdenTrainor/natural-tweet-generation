@@ -2,37 +2,13 @@ import os
 import sys
 import json
 import numpy as np
+import pandas as pd
 from numba import njit
+from tensorflow.keras.callbacks import Callback
 from tensorflow.keras.utils import Sequence
 from tensorflow.keras.models import model_from_json
 
-
-@njit
-def one_hot_features(start_inds, data, sample_len, nchars):
-    """
-    Generates the one hot encoded feature and target arrays.
-    As it's a nested for-loop invoving just numpy it's massivly more
-    performant to compile it with numba.
-
-    Args
-    ----
-    start_inds, np.ndarray, (batch_size,)
-        Array of starting indices for the samples in this batch
-
-    data, np.ndarray, (corpus_size, )
-        The full corpus of text in ordinal form
-
-    sample_len, int
-        Number of characters before target character
-
-    nchars, int
-        Number of unique characters in corpus and the size of each one hot array
-    """
-    out = np.zeros((len(start_inds), sample_len + 1, nchars), np.float32)
-    for j, start_ind in enumerate(start_inds):
-        for k, val in enumerate(np.arange(start_ind, start_ind + sample_len + 1)):
-            out[j, k, data[val]] = 1
-    return out[:, :-1, :], out[:, -1, :]
+from eda_utils import tweet_cleaner, rmv_uncommon
 
 
 class DataGenerator(Sequence):
@@ -90,7 +66,7 @@ class DataGenerator(Sequence):
         """
         sample_starts = self.train_index[pos: pos + self.batch_size]
         features, targets = one_hot_features(
-            sample_starts, self.corpus, self.sample_len, self.nchars,
+            sample_starts, self.corpus, self.sample_len, self.nchars, targets=True,
         )
         return features, targets
 
@@ -225,6 +201,54 @@ class TextCorpus:
         return len(self.char_to_indicies)
 
 
+def load_corpus(file):
+    df = pd.read_json(DATA_FILE)
+
+    # Remove hyerlinks etc
+    df["text"] = df["text"].apply(tweet_cleaner)
+    df["text"] = df.text.apply(rmv_uncommon)
+    df = df[(df["text"] != "") | (df["text"] != " ")]
+    df = df[df.is_retweet == False]
+
+    # Use "special" symbol @ to indicate end of tweet, since we removed them all before
+    return "@".join(df["text"].values)
+
+
+@njit
+def one_hot_features(start_inds, data, sample_len, nchars, targets=False):
+    """
+    Generates the one hot encoded feature and target arrays.
+    As it's a nested for-loop invoving just numpy it's massivly more
+    performant to compile it with numba.
+
+    Args
+    ----
+    start_inds, np.ndarray, (batch_size,)
+        Array of starting indices for the samples in this batch
+
+    data, np.ndarray, (corpus_size, )
+        The full corpus of text in ordinal form
+
+    sample_len, int
+        Number of characters before target character
+
+    nchars, int
+        Number of unique characters in corpus and the size of each one hot array
+
+    targets, bool
+        Toggles whether to output of target
+    """
+    if targets:
+        sample_len += 1
+    out = np.zeros((len(start_inds), sample_len, nchars), np.float32)
+    for j, start_ind in enumerate(start_inds):
+        for k, val in enumerate(np.arange(start_ind, start_ind + sample_len)):
+            out[j, k, data[val]] = 1
+    if targets:
+        return out[:, :-1, :], out[:, -1, :]
+    return out, np.empty((1, 1), np.float32)
+
+
 def create_class_weight(corp, mu=0.15):
     """
     Class weighting with label smoothing.
@@ -301,10 +325,10 @@ def load_model(model_name):
 
 def generate_tweet(model, seed_index, diversity, corp):
     with open('./output/' + model.name + '.txt', "a+") as log_file:
-        logwrite(log_file, '----- diversity: {}\n'.format(diversity))
+        logwrite(log_file, '----- Diversity: {}\n'.format(diversity))
 
         sentence = ''.join(corp.corpus[seed_index: seed_index +
-                                       model.input_shape[1] + 1])
+                                       model.input_shape[1]])
         generated = sentence
 
         logwrite(log_file, '----- Generating with seed: "' + sentence + '"\n')
@@ -316,7 +340,7 @@ def generate_tweet(model, seed_index, diversity, corp):
         while not end_of_sentence(pred_char):
             x = corp.encode_numerical(sentence)
             xOH, _ = one_hot_features(
-                np.array([0]), x, model.input_shape[1], corp.get_num_chars()
+                np.array([0]), x, model.input_shape[1], corp.get_num_chars(), targets=False,
 
             )
             preds = model.predict(xOH, verbose=0)[0]
