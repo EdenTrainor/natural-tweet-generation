@@ -202,7 +202,7 @@ class TextCorpus:
 
 
 def load_corpus(file):
-    df = pd.read_json(DATA_FILE)
+    df = pd.read_json(file)
 
     # Remove hyerlinks etc
     df["text"] = df["text"].apply(tweet_cleaner)
