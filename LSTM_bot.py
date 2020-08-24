@@ -50,6 +50,8 @@ def main():
     test_corpus = full_corpus[int(len(full_corpus) * 0.9):]
 
     class_weights = create_class_weight(train_corpus.corpus, MU)
+
+    # make_window_dataset
     train_gen = DataGenerator(train_corpus, SAMPLE_LEN,
                               STEP_SIZE, batch_size=BATCH_SIZE)
     test_gen = DataGenerator(test_corpus, SAMPLE_LEN,
@@ -70,6 +72,8 @@ def main():
             validation_data=test_gen,
             validation_steps=test_gen.epoch_size,
             class_weight=class_weights,
+            workers=4,
+            use_multiprocessing=True,
         )
 
         seed_index = 1 + np.random.choice(tweet_ends, 1)[0]

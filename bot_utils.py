@@ -154,10 +154,10 @@ class TextCorpus:
         data, np.ndarray(np.int32)
             Numerical corpus, ordinally encoded
         """
-        data = np.zeros((len(text),), dtype=np.int32)
-        for i, t in enumerate(text):
-            data[i] = self.char_to_indicies[t]
-        return data
+        if isinstance(text, str):
+            text = np.fromiter(text, '<U1')
+        data = np.vectorize(self.char_to_indicies.__getitem__)(text)
+        return data.astype(np.int32)
 
     def decode_numerical(self, nums):
         """
@@ -201,7 +201,39 @@ class TextCorpus:
         return len(self.char_to_indicies)
 
 
-def load_corpus(file):
+def stride_dataset(corpus, step_size, batch_size, shuffle=True):
+    """
+    Decreases memory usage when we have overlapping samples by refering to the
+    same memory locations for overlapping values.
+    """
+    x = corpus.encode_numerical(corpus.corpus)
+    if not x.flags['C_CONTIGUOUS']:
+        # Neede for stride tricks to work
+        x = np.ascontiguousarray(x)
+
+    x = np.lib.stride_tricks.as_strided(x, (), (8,))
+
+
+def make_window_dataset(ds, window_size=5, shift=1, stride=1):
+    """
+    Makes a strided dataset with targets
+    """
+    windows = ds.window(window_size+1, shift=shift,
+                        stride=stride, drop_remainder=True)
+
+    def sub_to_batch(sub):
+        return sub.batch(window_size, drop_remainder=True)
+
+    windows = windows.flat_map(sub_to_batch)
+
+    def split_features_and_target(s):
+        return s[:-1], s[-1]
+
+    windows = windows.map(split_features_and_target)
+    return windows
+
+
+def load_corpus(file, endings=True):
     df = pd.read_json(file)
 
     # Remove hyerlinks etc
@@ -209,9 +241,10 @@ def load_corpus(file):
     df["text"] = df.text.apply(rmv_uncommon)
     df = df[(df["text"] != "") | (df["text"] != " ")]
     df = df[df.is_retweet == False]
-
+    if not endings:
+        return "".join(df.text.values)
     # Use "special" symbol @ to indicate end of tweet, since we removed them all before
-    return "@".join(df["text"].values)
+    return "@".join(df.text.values)
 
 
 @njit
@@ -247,6 +280,32 @@ def one_hot_features(start_inds, data, sample_len, nchars, targets=False):
     if targets:
         return out[:, :-1, :], out[:, -1, :]
     return out, np.empty((1, 1), np.float32)
+
+
+def decode(arr, corp):
+    """
+    Used for decoding one hot encoded text.
+
+    Args
+    ----
+    arr, np.ndarray
+        Text in OH encodec array
+    corp, TextCorpus
+        Object that persists the indices_to_char mapping dict
+    """
+    out = []
+    for batch in range(arr[0].shape[0]):
+        print("-" * 40)
+        print("Batch " + str(batch))
+        string = ""
+        sample = arr[0][batch, ...]
+        for letter in sample:
+            string += corp.indicies_to_char[np.where(letter == 1)[0][0]]
+        ans = corp.indicies_to_char[np.where(arr[1][batch] == 1)[0][0]]
+        print("SAMPLE:", string)
+        print("TARGET: ({})".format(ans))
+        out.append((sample, ans))
+    return out
 
 
 def create_class_weight(corp, mu=0.15):
